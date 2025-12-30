@@ -204,11 +204,11 @@ export class CDProductSheetsService {
   }
 
   /**
-   * Parse data and group by MÃ HÀNG (column E)
+   * Parse data and group by MÃ HÀNG (column E) + MẪU (column F)
    * Each product group contains multiple detail rows
    */
   private parseGroupedData(dataRows: any[][], sheetCode: string): any {
-    const products = new Map<string, any>();
+    const products = new Map<string, any>(); // Key: "ma-mau" (composite key)
 
     // Metadata from first row (should be consistent)
     let maChuyenLine = '';
@@ -228,7 +228,9 @@ export class CDProductSheetsService {
       if (ma !== '') {
         // Save previous product if exists
         if (currentProduct) {
-          products.set(currentProduct.ma, currentProduct);
+          // Use composite key: ma-mau
+          const productKey = `${currentProduct.ma}-${currentProduct.mau}`;
+          products.set(productKey, currentProduct);
         }
 
         // Start new product group
@@ -276,7 +278,9 @@ export class CDProductSheetsService {
 
     // Save last product
     if (currentProduct) {
-      products.set(currentProduct.ma, currentProduct);
+      // Use composite key: ma-mau
+      const productKey = `${currentProduct.ma}-${currentProduct.mau}`;
+      products.set(productKey, currentProduct);
     }
 
     // Convert Map to Array
