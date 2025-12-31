@@ -220,6 +220,7 @@ export class CDProductListenerService implements OnModuleInit {
           conLai: product.conLai,
           ttdb: product.ttdb,
           canXuLy: product.canXuLy,
+          hidden: product.hidden,
           details: product.details.map((detail: any) => ({
             nhuCauLuyKe: detail.nhuCauLuyKe,
             tenChiTiet: detail.tenChiTiet,
@@ -228,6 +229,7 @@ export class CDProductListenerService implements OnModuleInit {
             conLai: detail.conLai,
             ttdb: detail.ttdb,
             canXuLy: detail.canXuLy,
+            hidden: detail.hidden,
           })),
         })),
       };
@@ -297,6 +299,7 @@ export class CDProductListenerService implements OnModuleInit {
       'conLai',
       'ttdb',
       'canXuLy',
+      'hidden',
     ];
 
     for (const field of fieldsToCheck) {

@@ -22,6 +22,7 @@ import { google } from 'googleapis';
  * - L: CÒN LẠI (-2110, -941...)
  * - M: TTĐB (3864, 5...)
  * - N: CẦN XỬ LÝ (-2110, -941...)
+ * - O: HIDDEN (đánh dấu để frontend ẩn/hiện)
  */
 @Injectable()
 export class CDProductSheetsService {
@@ -114,7 +115,7 @@ export class CDProductSheetsService {
       const spreadsheetId = this.configService.get<string>('GOOGLE_SHEET_ID');
 
       if (!range) {
-        range = 'A1:N1000'; // Default range for columns A-N
+        range = 'A1:O1000'; // Default range for columns A-O
       }
 
       const maxRetries = 3;
@@ -179,8 +180,8 @@ export class CDProductSheetsService {
 
       this.logger.log(`📊 CD Products: Fetching data from sheet ${sheetCode}`);
 
-      // Read sheet data (columns A-N)
-      const values = await this.getSheetData(sheetCode, 'A1:N1000');
+      // Read sheet data (columns A-O)
+      const values = await this.getSheetData(sheetCode, 'A1:O1000');
 
       if (values.length <= 1) {
         this.logger.warn(`CD Products: No data found in ${sheetCode} sheet`);
@@ -245,6 +246,7 @@ export class CDProductSheetsService {
           conLai: this.parseNumber(row[11]), // L: CÒN LẠI
           ttdb: this.parseNumber(row[12]), // M: TTĐB
           canXuLy: this.parseNumber(row[13]), // N: CẦN XỬ LÝ
+          hidden: (row[14] || '').toString().trim(), // O: HIDDEN (đánh dấu ẩn/hiện)
           details: [], // Chi tiết (Thân, Hồng túi, QX dưới không...)
         };
 
@@ -270,6 +272,7 @@ export class CDProductSheetsService {
               conLai: this.parseNumber(row[11]), // L: CÒN LẠI
               ttdb: this.parseNumber(row[12]), // M: TTĐB
               canXuLy: this.parseNumber(row[13]), // N: CẦN XỬ LÝ
+              hidden: (row[14] || '').toString().trim(), // O: HIDDEN
             });
           }
         }
