@@ -9,7 +9,6 @@ import {
 } from '@nestjs/websockets';
 import { Logger, Inject, forwardRef } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
-import { HTMSheetsListenerService } from '../google-sheets/htm/htm-sheets-listener.service';
 
 @WebSocketGateway({
   cors: {
@@ -25,8 +24,6 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnec
   private connectedClients = new Map<string, { socket: Socket; subscriptions: string[] }>();
 
   constructor(
-    @Inject(forwardRef(() => HTMSheetsListenerService))
-    private htmSheetsListener: HTMSheetsListenerService,
   ) {}
 
   handleConnection(client: Socket) {
@@ -41,106 +38,6 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnec
 
   handleDisconnect(client: Socket) {
     this.connectedClients.delete(client.id);
-  }
-
-  @SubscribeMessage('subscribe-production')
-  async handleSubscribeProduction(
-    @MessageBody()
-    data: {
-      maChuyenLine?: string;
-      factory?: string;
-      line?: string;
-      team?: string;
-      index?: number;
-    },
-    @ConnectedSocket() client: Socket,
-  ) {
-    this.logger.log(
-      `📩 Received subscription request from client ${client.id}:`,
-      JSON.stringify(data),
-    );
-
-    let subscriptionKey: string;
-
-    if (data.maChuyenLine) {
-      subscriptionKey = `production:code:${data.maChuyenLine}`;
-
-      // 🔥 CRITICAL: Trigger on-demand loading for HTM lines
-      if (data.factory && data.index !== undefined) {
-        this.logger.log(
-          `🔥 Triggering on-demand load for ${data.maChuyenLine} (factory: ${data.factory}, index: ${data.index})`,
-        );
-        await this.htmSheetsListener.handleClientSubscription(
-          data.maChuyenLine,
-          data.factory,
-          data.index,
-        );
-      }
-    } else {
-      subscriptionKey = `production:${data.factory || 'all'}:${data.line || 'all'}:${data.team || 'all'}`;
-    }
-
-    const clientData = this.connectedClients.get(client.id);
-    if (clientData && !clientData.subscriptions.includes(subscriptionKey)) {
-      clientData.subscriptions.push(subscriptionKey);
-    }
-
-    // ✅ CRITICAL: Client joins the room
-    this.logger.log(`🚪 Client ${client.id} joining room: ${subscriptionKey}`);
-    client.join(subscriptionKey);
-
-    // ✅ Log successful join
-    const roomSize = this.server.sockets.adapter.rooms.get(subscriptionKey)?.size || 0;
-
-    // ✅ Log all clients in room
-    const clientsInRoom = Array.from(this.server.sockets.adapter.rooms.get(subscriptionKey) || []);
-    this.logger.log(
-      `✅ Client ${client.id} joined room ${subscriptionKey}. Room size: ${roomSize}, Clients: ${clientsInRoom.join(', ')}`,
-    );
-
-    // Send immediate confirmation to client
-    client.emit('subscription-confirmed', {
-      subscriptionKey,
-      roomSize,
-      clientsInRoom: clientsInRoom.length,
-      timestamp: new Date().toISOString(),
-      message: 'Subscription confirmed',
-    });
-
-    this.sendImmediateData(client, data);
-  }
-
-  @SubscribeMessage('subscribe-center-tv')
-  handleSubscribeCenterTV(
-    @MessageBody() data: { factory: string; line: string },
-    @ConnectedSocket() client: Socket,
-  ) {
-    const roomName = `center-tv-${data.factory.toLowerCase()}-${data.line}`;
-
-    const clientData = this.connectedClients.get(client.id);
-    if (clientData && !clientData.subscriptions.includes(roomName)) {
-      clientData.subscriptions.push(roomName);
-    }
-
-    // Join the room
-    client.join(roomName);
-
-    // Get room size
-    const roomSize = this.server.sockets.adapter.rooms.get(roomName)?.size || 0;
-
-    // Send confirmation
-    client.emit('center-tv-subscription-confirmed', {
-      roomName,
-      factory: data.factory,
-      line: data.line,
-      roomSize,
-      timestamp: new Date().toISOString(),
-      message: 'Center TV subscription confirmed',
-    });
-
-    this.logger.log(
-      `✅ Client ${client.id} subscribed to ${roomName} (${roomSize} clients in room)`,
-    );
   }
 
   /**

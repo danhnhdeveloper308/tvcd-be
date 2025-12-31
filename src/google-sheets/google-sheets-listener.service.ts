@@ -2,7 +2,6 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { WebsocketGateway } from '../websocket/websocket.gateway';
 import { GoogleSheetsService } from './google-sheets.service';
-import { HTMSheetsService } from './htm/htm-sheets.service';
 import { Cron } from '@nestjs/schedule';
 
 @Injectable()
