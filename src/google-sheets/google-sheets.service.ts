@@ -195,6 +195,25 @@ async getSheetData(sheetName: string, range: string = 'A1:C050'): Promise<any[][
     }
   }
 
+    /**
+   * Get sheet data with custom spreadsheet ID
+   * Useful for modules that use different spreadsheets (e.g., QSL)
+   */
+  async getSheetDataWithCustomId(sheetName: string, customSpreadsheetId: string, range: string = 'A1:Z100'): Promise<any[][]> {
+    try {
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: customSpreadsheetId,
+        range: `${sheetName}!${range}`,
+      });
+
+      return response.data.values || [];
+    } catch (error) {
+      this.logger.error(`❌ Failed to fetch data from sheet ${sheetName} (custom ID):`, error);
+      this.logger.warn('Returning empty array as fallback');
+      return [];
+    }
+  }
+
   async getProductionData(factory: string): Promise<any[]> {
     try {
       // Check quota status first
