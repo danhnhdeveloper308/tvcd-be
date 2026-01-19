@@ -8,8 +8,8 @@ import { GoogleSheetsService } from '../google-sheets.service';
  * Range: A1:T90
  *
  * Sheet Structure:
- * - A: TÊN TỔ (TỔ 1, TỔ 2, TÚI NHỎ...)
- * - B: TGLV (Thời gian làm việc - số nhóm)
+ * - A: TÊN TỔ (TỔ 1, TỔ 2, hoặc trống nếu là dòng TÚI NHỎ)
+ * - B: TGLV (Thời gian làm việc - số nhóm, HOẶC "TÚI NHỎ (NẾU CÓ)")
  * - C: NHÓM (Tên nhóm: ĐỒNG GÓI, QC KIỂM TÚI, RÁP, THÂN, LÓT, QC KIỂM QUAI, QUAI, SƠN CT/BTP)
  * - D: LĐ LAYOUT (Lao động layout)
  * - E: THỰC TẾ (Lao động thực tế)
@@ -21,8 +21,9 @@ import { GoogleSheetsService } from '../google-sheets.service';
  *
  * Logic:
  * - Mỗi tổ có tối đa 16 dòng:
- *   + 9 dòng đầu (ĐỒNG GÓI, QC KIỂM TÚI,SƠN TP, RÁP, THÂN, LÓT, QC KIỂM QUAI, QUAI, SƠN CT/BTP) - Luôn có
+ *   + 9 dòng đầu (ĐỒNG GÓI, QC KIỂM TÚI, SƠN TP, RÁP, THÂN, LÓT, QC KIỂM QUAI, QUAI, SƠN CT/BTP) - Luôn có
  *   + 7 dòng TÚI NHỎ (nếu có) - Chỉ return nếu Kế hoạch (F) > 0
+ *   + TÚI NHỎ được nhận diện khi: Cột A hoặc Cột B chứa "TÚI NHỎ" / "TÚI NHỎ(NẾU CÓ)"
  */
 @Injectable()
 export class QSLSheetsService {
@@ -127,7 +128,8 @@ export class QSLSheetsService {
 
       // Column A: TÊN TỔ
       const tenTo = (row[0] || '').toString().trim();
-      const tglv = this.parseNumber(row[1]); // Column B: TGLV
+      const tglvRaw = (row[1] || '').toString().trim(); // Column B: TGLV (can also contain "TÚI NHỎ")
+      const tglv = this.parseNumber(row[1]); // Column B: TGLV as number
       const nhom = (row[2] || '').toString().trim(); // Column C: NHÓM
 
       // Detect new team (TỔ 1, TỔ 2, etc.)
@@ -141,7 +143,7 @@ export class QSLSheetsService {
         currentTeam = {
           tenTo: tenTo,
           tglv: tglv,
-          fixedGroups: [], // 8 fixed rows
+          fixedGroups: [], // 9 fixed rows (ĐÓNG GÓI, QC KIỂM TÚI, SƠN TP, RÁP, THÂN, LÓT, QC KIỂM QUAI, QUAI, SƠN CT/BTP)
           tuiNhoGroups: [], // TÚI NHỎ rows (if any)
         };
         fixedRowCount = 0;
@@ -157,15 +159,22 @@ export class QSLSheetsService {
       }
 
       // Check if row belongs to "TÚI NHỎ" section
-      const isTuiNho = tenTo.match(/^TÚI\s+NHỎ$/i);
+      // ⭐ FIX: "TÚI NHỎ" có thể nằm ở cột A (tenTo) HOẶC cột B (tglvRaw)
+      const isTuiNho = tenTo.match(/^TÚI\s+NHỎ/i) || tglvRaw.match(/^TÚI\s+NHỎ/i);
+      
+      // Debug log for TÚI NHỎ detection
+      if (isTuiNho && currentTeam) {
+        this.logger.debug(`🔍 Detected TÚI NHỎ row: Cột A="${tenTo}" | Cột B="${tglvRaw}" | Nhóm: "${nhom}" | Kế hoạch: ${this.parseNumber(row[5])}`);
+      }
 
       // Parse row data
       const rowData = this.parseRowData(row, nhom);
 
       // Assign to current team
       if (currentTeam) {
-        if (!isTuiNho && fixedRowCount < 9) {
-          // Add to fixed groups (9 rows)
+        if (!isTuiNho && fixedRowCount < this.FIXED_GROUPS.length) {
+          // ⭐ FIX: Use FIXED_GROUPS.length (9) instead of hardcoded 9
+          // Add to fixed groups (9 rows: ĐÓNG GÓI, QC KIỂM TÚI, SƠN TP, RÁP, THÂN, LÓT, QC KIỂM QUAI, QUAI, SƠN CT/BTP)
           currentTeam.fixedGroups.push(rowData);
           fixedRowCount++;
         } else if (isTuiNho) {

@@ -11,8 +11,8 @@ Module phục vụ nghiệp vụ QSL - đọc dữ liệu từ Google Sheets LIN
 ### Columns (A-T)
 | Cột | Tên cột | Mô tả |
 |-----|---------|-------|
-| **A** | TÊN TỔ | Tên tổ (TỔ 1, TỔ 2, TÚI NHỎ...) |
-| **B** | TGLV | Thời gian làm việc (số nhóm) |
+| **A** | TÊN TỔ | Tên tổ (TỔ 1, TỔ 2, hoặc trống nếu là dòng TÚI NHỎ) |
+| **B** | TGLV | Thời gian làm việc (số nhóm), HOẶC "TÚI NHỎ (NẾU CÓ)" |
 | **C** | NHÓM | Tên nhóm công việc |
 | **D** | LĐ LAYOUT | Lao động layout |
 | **E** | THỰC TẾ | Lao động thực tế |
@@ -35,18 +35,22 @@ Module phục vụ nghiệp vụ QSL - đọc dữ liệu từ Google Sheets LIN
 ### Data Logic
 
 Mỗi TỔ có cấu trúc:
-- **8 dòng cố định** (luôn có):
+- **9 dòng cố định** (luôn có):
   1. ĐỒNG GÓI
   2. QC KIỂM TÚI
-  3. RÁP
-  4. THÂN
-  5. LÓT
-  6. QC KIỂM QUAI
-  7. QUAI
-  8. SƠN CT/BTP
+  3. SƠN TP
+  4. RÁP
+  5. THÂN
+  6. LÓT
+  7. QC KIỂM QUAI
+  8. QUAI
+  9. SƠN CT/BTP
 
 - **Tối đa 7 dòng TÚI NHỎ** (nếu có):
   - Chỉ return các dòng có **KẾ HOẠCH (cột F) > 0**
+  - **Hỗ trợ nhiều format tên**: "TÚI NHỎ", "TÚI NHỎ(NẾU CÓ)", "Túi nhỏ", v.v.
+  - **TÚI NHỎ có thể nằm ở cột A HOẶC cột B**
+  - Regex match: `/^TÚI\s+NHỎ/i` (case-insensitive, bắt đầu bằng "TÚI NHỎ")
 
 ## 🚀 API Endpoints
 
