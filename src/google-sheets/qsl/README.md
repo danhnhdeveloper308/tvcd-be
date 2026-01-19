@@ -46,10 +46,12 @@ Mỗi TỔ có cấu trúc:
   8. QUAI
   9. SƠN CT/BTP
 
-- **Tối đa 7 dòng TÚI NHỎ** (nếu có):
+- **Tối đa 8 dòng TÚI NHỎ** (nếu có):
+  - **8 nhóm**: QC KIỂM TÚI, SƠN TP, RÁP, THÂN, LÓT, QC KIỂM QUAI, QUAI, SƠN CT/BTP (không có ĐÓNG GÓI)
   - Chỉ return các dòng có **KẾ HOẠCH (cột F) > 0**
   - **Hỗ trợ nhiều format tên**: "TÚI NHỎ", "TÚI NHỎ(NẾU CÓ)", "Túi nhỏ", v.v.
-  - **TÚI NHỎ có thể nằm ở cột A HOẶC cột B**
+  - **TÚI NHỎ marker có thể nằm ở cột A HOẶC cột B**
+  - **Tất cả rows sau marker "TÚI NHỎ"** (cho đến TỔ mới) đều thuộc TÚI NHỎ section
   - Regex match: `/^TÚI\s+NHỎ/i` (case-insensitive, bắt đầu bằng "TÚI NHỎ")
 
 ## 🚀 API Endpoints

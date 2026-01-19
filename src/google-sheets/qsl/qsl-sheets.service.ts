@@ -20,10 +20,12 @@ import { GoogleSheetsService } from '../google-sheets.service';
  * - T: %HT (Phần trăm hoàn thành)
  *
  * Logic:
- * - Mỗi tổ có tối đa 16 dòng:
- *   + 9 dòng đầu (ĐỒNG GÓI, QC KIỂM TÚI, SƠN TP, RÁP, THÂN, LÓT, QC KIỂM QUAI, QUAI, SƠN CT/BTP) - Luôn có
- *   + 7 dòng TÚI NHỎ (nếu có) - Chỉ return nếu Kế hoạch (F) > 0
- *   + TÚI NHỎ được nhận diện khi: Cột A hoặc Cột B chứa "TÚI NHỎ" / "TÚI NHỎ(NẾU CÓ)"
+ * - Mỗi tổ có tối đa 17 dòng:
+ *   + 9 dòng cố định (ĐÓNG GÓI, QC KIỂM TÚI, SƠN TP, RÁP, THÂN, LÓT, QC KIỂM QUAI, QUAI, SƠN CT/BTP) - Luôn có
+ *   + 8 dòng TÚI NHỎ (nếu có): QC KIỂM TÚI, SƠN TP, RÁP, THÂN, LÓT, QC KIỂM QUAI, QUAI, SƠN CT/BTP (không có ĐÓNG GÓI)
+ *   + TÚI NHỎ section bắt đầu khi: Cột A hoặc Cột B chứa "TÚI NHỎ" / "TÚI NHỎ(NẾU CÓ)"
+ *   + Tất cả rows sau marker "TÚI NHỎ" (cho đến TỔ mới) đều thuộc tuiNhoGroups
+ *   + Chỉ return rows có Kế hoạch (F) > 0
  */
 @Injectable()
 export class QSLSheetsService {
@@ -116,12 +118,13 @@ export class QSLSheetsService {
    * Parse data and group by TỔ (Team)
    * Each team contains:
    * - 9 fixed rows (ĐỒNG GÓI, QC KIỂM TÚI, SƠN TP, RÁP, THÂN, LÓT, QC KIỂM QUAI, QUAI, SƠN CT/BTP)
-   * - Up to 7 TÚI NHỎ rows (if Kế hoạch > 0)
+   * - Up to 8 TÚI NHỎ rows (QC KIỂM TÚI, SƠN TP, RÁP, THÂN, LÓT, QC KIỂM QUAI, QUAI, SƠN CT/BTP) if Kế hoạch > 0
    */
   private parseGroupedData(dataRows: any[][], line: number): any {
     const teams: any[] = [];
     let currentTeam: any = null;
     let fixedRowCount = 0;
+    let inTuiNhoSection = false; // ⭐ Track if we're in TÚI NHỎ section
 
     for (let i = 0; i < dataRows.length; i++) {
       const row = dataRows[i];
@@ -147,6 +150,7 @@ export class QSLSheetsService {
           tuiNhoGroups: [], // TÚI NHỎ rows (if any)
         };
         fixedRowCount = 0;
+        inTuiNhoSection = false; // ⭐ Reset TÚI NHỎ section flag
         
         // ✅ FIX: Don't skip this row! The first row contains team info AND first group data
         // Parse this row's data (Column C onwards contains ĐÓNG GÓI data)
@@ -158,30 +162,37 @@ export class QSLSheetsService {
         continue;
       }
 
-      // Check if row belongs to "TÚI NHỎ" section
-      // ⭐ FIX: "TÚI NHỎ" có thể nằm ở cột A (tenTo) HOẶC cột B (tglvRaw)
-      const isTuiNho = tenTo.match(/^TÚI\s+NHỎ/i) || tglvRaw.match(/^TÚI\s+NHỎ/i);
+      // Check if this row starts "TÚI NHỎ" section
+      // ⭐ "TÚI NHỎ" có thể nằm ở cột A (tenTo) HOẶC cột B (tglvRaw)
+      const isTuiNhoMarker = tenTo.match(/^TÚI\s+NHỎ/i) || tglvRaw.match(/^TÚI\s+NHỎ/i);
       
-      // Debug log for TÚI NHỎ detection
-      if (isTuiNho && currentTeam) {
-        this.logger.debug(`🔍 Detected TÚI NHỎ row: Cột A="${tenTo}" | Cột B="${tglvRaw}" | Nhóm: "${nhom}" | Kế hoạch: ${this.parseNumber(row[5])}`);
+      if (isTuiNhoMarker) {
+        // Enter TÚI NHỎ section
+        inTuiNhoSection = true;
+        this.logger.debug(`🔍 Entering TÚI NHỎ section: Cột A="${tenTo}" | Cột B="${tglvRaw}"`);
       }
 
-      // Parse row data
+      // Parse row data (skip if no nhom)
+      if (!nhom) {
+        continue;
+      }
+      
       const rowData = this.parseRowData(row, nhom);
 
       // Assign to current team
       if (currentTeam) {
-        if (!isTuiNho && fixedRowCount < this.FIXED_GROUPS.length) {
-          // ⭐ FIX: Use FIXED_GROUPS.length (9) instead of hardcoded 9
-          // Add to fixed groups (9 rows: ĐÓNG GÓI, QC KIỂM TÚI, SƠN TP, RÁP, THÂN, LÓT, QC KIỂM QUAI, QUAI, SƠN CT/BTP)
+        if (!inTuiNhoSection && fixedRowCount < this.FIXED_GROUPS.length) {
+          // ⭐ Add to fixed groups (9 rows: ĐÓNG GÓI, QC KIỂM TÚI, SƠN TP, RÁP, THÂN, LÓT, QC KIỂM QUAI, QUAI, SƠN CT/BTP)
           currentTeam.fixedGroups.push(rowData);
           fixedRowCount++;
-        } else if (isTuiNho) {
-          // Add to TÚI NHỎ groups (only if Kế hoạch > 0)
+        } else if (inTuiNhoSection) {
+          // ⭐ Add to TÚI NHỎ groups (all rows after "TÚI NHỎ" marker, only if Kế hoạch > 0)
           const keHoach = this.parseNumber(row[5]); // Column F: KẾ HOẠCH
           if (keHoach > 0) {
             currentTeam.tuiNhoGroups.push(rowData);
+            this.logger.debug(`  ➕ Added to tuiNhoGroups: ${nhom} (Kế hoạch: ${keHoach})`);
+          } else {
+            this.logger.debug(`  ⏭️  Skipped tuiNhoGroups: ${nhom} (Kế hoạch: ${keHoach} <= 0)`);
           }
         }
       }
