@@ -56,8 +56,7 @@ export class GoogleSheetsListenerService implements OnModuleInit {
   }
 
   // Check every 5 minutes during work hours, ONLY in active production blocks
-  // Reduced from 2 minutes to 5 minutes to avoid Google Sheets quota limits
-  @Cron('*/2 8-20 * * 1-6', {
+  @Cron('*/5 8-20 * * 1-6', {
     timeZone: 'Asia/Ho_Chi_Minh',
   }) // Every 5 minutes, 8AM-8PM, Monday-Saturday
   async checkForChanges() {

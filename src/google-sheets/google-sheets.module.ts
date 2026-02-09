@@ -4,8 +4,8 @@ import { GoogleSheetsService } from "./google-sheets.service";
 import { CDProductSheetsService } from "./cd/cd-product-sheets.service";
 import { CDProductListenerService } from "./cd/cd-product-listener.service";
 import { WebsocketModule } from "../websocket/websocket.module";
-import { QSLSheetsService } from "./qsl/qsl-sheets.service";
-import { QSLListenerService } from "./qsl/qsl-listener.service";
+// import { QSLSheetsService } from "./qsl/qsl-sheets.service";
+// import { QSLListenerService } from "./qsl/qsl-listener.service";
 
 @Module({
   imports: [ConfigModule, forwardRef(() => WebsocketModule)],
@@ -13,15 +13,15 @@ import { QSLListenerService } from "./qsl/qsl-listener.service";
     GoogleSheetsService,
     CDProductSheetsService,
     CDProductListenerService,
-    QSLSheetsService,
-    QSLListenerService,
+    // QSLSheetsService,
+    // QSLListenerService,
   ],
   exports: [
     GoogleSheetsService,
     CDProductSheetsService,
     CDProductListenerService,
-    QSLSheetsService,
-    QSLListenerService,
+    // QSLSheetsService,
+    // QSLListenerService,
   ],
 })
 export class GoogleSheetsModule {}

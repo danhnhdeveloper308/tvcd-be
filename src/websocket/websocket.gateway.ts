@@ -79,38 +79,38 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnec
   /**
    * ⭐ NEW: Subscribe to QSL updates (LINE1, LINE2, LINE3, LINE4...)
    */
-  @SubscribeMessage('subscribe-qsl')
-  handleSubscribeQSL(
-    @MessageBody() data: { line: number },
-    @ConnectedSocket() client: Socket,
-  ) {
-    const lineNumber = data.line; // 1, 2, 3, 4...
-    const roomName = `qsl-line${lineNumber}`;
+  // @SubscribeMessage('subscribe-qsl')
+  // handleSubscribeQSL(
+  //   @MessageBody() data: { line: number },
+  //   @ConnectedSocket() client: Socket,
+  // ) {
+  //   const lineNumber = data.line; // 1, 2, 3, 4...
+  //   const roomName = `qsl-line${lineNumber}`;
 
-    const clientData = this.connectedClients.get(client.id);
-    if (clientData && !clientData.subscriptions.includes(roomName)) {
-      clientData.subscriptions.push(roomName);
-    }
+  //   const clientData = this.connectedClients.get(client.id);
+  //   if (clientData && !clientData.subscriptions.includes(roomName)) {
+  //     clientData.subscriptions.push(roomName);
+  //   }
 
-    // Join the room
-    client.join(roomName);
+  //   // Join the room
+  //   client.join(roomName);
 
-    // Get room size
-    const roomSize = this.server.sockets.adapter.rooms.get(roomName)?.size || 0;
+  //   // Get room size
+  //   const roomSize = this.server.sockets.adapter.rooms.get(roomName)?.size || 0;
 
-    // Send confirmation
-    client.emit('qsl-subscription-confirmed', {
-      roomName,
-      line: lineNumber,
-      roomSize,
-      timestamp: new Date().toISOString(),
-      message: `QSL subscription confirmed for LINE${lineNumber}`,
-    });
+  //   // Send confirmation
+  //   client.emit('qsl-subscription-confirmed', {
+  //     roomName,
+  //     line: lineNumber,
+  //     roomSize,
+  //     timestamp: new Date().toISOString(),
+  //     message: `QSL subscription confirmed for LINE${lineNumber}`,
+  //   });
 
-    this.logger.log(
-      `✅ Client ${client.id} subscribed to ${roomName} for LINE${lineNumber} (${roomSize} clients in room)`,
-    );
-  }
+  //   this.logger.log(
+  //     `✅ Client ${client.id} subscribed to ${roomName} for LINE${lineNumber} (${roomSize} clients in room)`,
+  //   );
+  // }
 
   @SubscribeMessage('unsubscribe-production')
   handleUnsubscribeProduction(

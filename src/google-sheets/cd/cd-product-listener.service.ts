@@ -65,7 +65,7 @@ export class CDProductListenerService implements OnModuleInit {
    * Cron job to check for changes every 2 minutes during work hours
    * Schedule: Every 2 minutes, 7AM-9PM, Mon-Sat
    */
-  @Cron(process.env.CD_PRODUCT_CRON_SCHEDULE || '*/2 7-21 * * 1-6', {
+  @Cron(process.env.CD_PRODUCT_CRON_SCHEDULE || '*/5 7-21 * * 1-6', {
     timeZone: 'Asia/Ho_Chi_Minh',
   })
   async checkForChanges() {
